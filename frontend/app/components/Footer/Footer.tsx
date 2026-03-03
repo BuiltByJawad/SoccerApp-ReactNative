@@ -10,7 +10,7 @@ import {
 
 export default function Footer() {
   return (
-    <View className="w-[390px] h-[68.75px] flex flex-row items-center justify-center w-full bg-[#FFFFFF] px-[20px] py-[10px]">
+    <View className="h-[68.75px] flex flex-row items-center justify-center w-full bg-[#FFFFFF] px-[20px] py-[10px]">
       <View className="flex flex-row gap-x-[32px] items-center justify-between w-full">
         <View className="w-[29px] h-[49px] flex flex-col items-center justify-center">
           <HomeIcon />

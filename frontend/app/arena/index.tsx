@@ -1,11 +1,34 @@
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
 import React, { useState } from "react";
 import Navigation from "../components/Navigation/Navigation";
-import { FootballIcon } from "../components/icons/Icons";
 import { LinearGradient } from "expo-linear-gradient";
 
-export default function page() {
+export default function Arena() {
   const [activeTab, setActiveTab] = useState("reserve");
+  const [selectedDate, setSelectedDate] = useState<number | null>(null);
+
+  const dates = [
+    { date: "04", day: "THU", id: 1 },
+    { date: "05", day: "FRI", id: 2 },
+    { date: "06", day: "SAT", id: 3 },
+    { date: "07", day: "SUN", id: 4 },
+    { date: "08", day: "MON", id: 5 },
+    { date: "09", day: "TUE", id: 6 },
+    { date: "10", day: "WED", id: 7 },
+    { date: "11", day: "THU", id: 8 },
+    { date: "12", day: "FRI", id: 9 },
+    { date: "13", day: "SAT", id: 10 },
+    { date: "14", day: "SUN", id: 11 },
+    { date: "15", day: "MON", id: 12 },
+    { date: "16", day: "TUE", id: 13 },
+    { date: "17", day: "WED", id: 14 },
+    { date: "18", day: "THU", id: 15 },
+  ];
+
+  const handleDatePress = (dateId: number) => {
+    setSelectedDate(dateId);
+  };
+
   return (
     <View className="w-full">
       <View className="mt-[8px] w-full flex-row items-center justify-center">
@@ -30,11 +53,11 @@ export default function page() {
             Plot no 217, Block, B B Rd No. 3, Dhaka 1216
           </Text>
         </View>
-        <View>
-          <button className="w-[115px] h-[28px] rounded-[54px] bg-[#E4E7FF] text-[#6600A5] leading-[100%] tracking-[0%] text-xs font-normal font-gil">
+        <TouchableOpacity className="w-[115px] h-[28px] rounded-[54px] bg-[#E4E7FF] items-center justify-center">
+          <Text className="text-[#6600A5] leading-[100%] tracking-[0%] text-xs font-normal font-gil">
             Follow
-          </button>
-        </View>
+          </Text>
+        </TouchableOpacity>
       </View>
       <View className="w-[390px] h-[1.5px]">
         <LinearGradient
@@ -48,13 +71,12 @@ export default function page() {
         />
       </View>
       <View className=" bg-white border-b-2 border-[#EDEDED] h-[36px] w-full px-[11px] flex-row items-center justify-center gap-x-[24px]">
-        <View
+        <TouchableOpacity
           className={`h-[36px] w-[70px] flex-row items-center justify-center ${
             activeTab === "reserve" ? "border-b-2 border-[#6600A5]" : ""
           }`}
           onPress={() => setActiveTab("reserve")}
         >
-          {" "}
           <Text
             className={`text-xs flex-row items-center justify-center text-center leading-[100%] tracking-[0%] font-gil ${
               activeTab === "reserve"
@@ -64,58 +86,55 @@ export default function page() {
           >
             Reserve
           </Text>
-        </View>
-        <View
+        </TouchableOpacity>
+        <TouchableOpacity
           className={`h-[36px] w-[70px] flex-row items-center justify-center ${
-            activeTab === "reserve" ? "border-b-2 border-[#6600A5]" : ""
+            activeTab === "events" ? "border-b-2 border-[#6600A5]" : ""
           }`}
-          onPress={() => setActiveTab("reserve")}
+          onPress={() => setActiveTab("events")}
         >
-          {" "}
           <Text
             className={`text-xs flex-row items-center justify-center text-center leading-[100%] tracking-[0%] font-gil ${
-              activeTab === "reserve"
+              activeTab === "events"
                 ? "font-bold text-[#6600A5]"
                 : "font-normal text-[#18181B]"
             }`}
           >
-            Reserve
+            Events
           </Text>
-        </View>
-        <View
+        </TouchableOpacity>
+        <TouchableOpacity
           className={`h-[36px] w-[70px] flex-row items-center justify-center ${
-            activeTab === "reserve" ? "border-b-2 border-[#6600A5]" : ""
+            activeTab === "gallery" ? "border-b-2 border-[#6600A5]" : ""
           }`}
-          onPress={() => setActiveTab("reserve")}
+          onPress={() => setActiveTab("gallery")}
         >
-          {" "}
           <Text
             className={`text-xs flex-row items-center justify-center text-center leading-[100%] tracking-[0%] font-gil ${
-              activeTab === "reserve"
+              activeTab === "gallery"
                 ? "font-bold text-[#6600A5]"
                 : "font-normal text-[#18181B]"
             }`}
           >
-            Reserve
+            Gallery
           </Text>
-        </View>
-        <View
+        </TouchableOpacity>
+        <TouchableOpacity
           className={`h-[36px] w-[70px] flex-row items-center justify-center ${
-            activeTab === "reserve" ? "border-b-2 border-[#6600A5]" : ""
+            activeTab === "about" ? "border-b-2 border-[#6600A5]" : ""
           }`}
-          onPress={() => setActiveTab("reserve")}
+          onPress={() => setActiveTab("about")}
         >
-          {" "}
           <Text
             className={`text-xs flex-row items-center justify-center text-center leading-[100%] tracking-[0%] font-gil ${
-              activeTab === "reserve"
+              activeTab === "about"
                 ? "font-bold text-[#6600A5]"
                 : "font-normal text-[#18181B]"
             }`}
           >
-            Reserve
+            About
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
       <View className="mt-[12.5px] px-[20px]">
         <Text className="text-[#000000] font-gil font-bold text-xs leading-[100%] tracking-[0%]">
@@ -125,14 +144,47 @@ export default function page() {
           </Text>
         </Text>
       </View>
-      <View className="mt-[8px] px-[20px] h-[70px]">
-        <View className="h-[46px] w-[32px]">
-          <View className="w-[32px] h-[32px] rounded-[50px] border border-[#FFFFFF] bg-[#F3F3F3]">
-            <Text className="text-[13px] text-black font-normal leading-[100%] tracking-[0%] font-gil">
-              04
-            </Text>
+      {/* scrollable */}
+      <View className="mt-[8px] h-[70px] w-full ps-[20px]">
+        <ScrollView
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingLeft: 0,
+            alignItems: "center",
+          }}
+          className="bg-white"
+        >
+          <View className="bg-white ps-[8px] flex-row items-center gap-x-[10px]">
+            {dates.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                className="h-[46px] w-[32px] flex-col gap-y-[4px] items-center justify-center"
+                onPress={() => handleDatePress(item.id)}
+              >
+                <View
+                  className="w-[32px] h-[32px] flex-row items-center justify-center rounded-[50px] border border-[#FFFFFF]"
+                  style={{
+                    backgroundColor:
+                      selectedDate === item.id ? "#6600A5" : "#FFFFFF",
+                  }}
+                >
+                  <Text
+                    className="w-full text-center text-[13px] font-normal leading-[100%] tracking-[0%] font-gil"
+                    style={{
+                      color: selectedDate === item.id ? "#FFFFFF" : "#000000",
+                    }}
+                  >
+                    {item.date}
+                  </Text>
+                </View>
+                <Text className="uppercase font-normal text-[9px] font-gil leading-[100%] tracking-[0%] text-black">
+                  {item.day}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        </View>
+        </ScrollView>
       </View>
     </View>
   );

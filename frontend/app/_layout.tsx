@@ -3,13 +3,14 @@ import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import "./globals.css";
+import gilFont from "../assets/fonts/gil.TTF";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    gil: require("../assets/fonts/gil.TTF"),
+    gil: gilFont,
   });
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function RootLayout() {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
       <Stack.Screen name="arena" />
     </Stack>
   );
