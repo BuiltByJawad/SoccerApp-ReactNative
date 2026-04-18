@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'wouter';
 import { colors } from '../theme/colors';
+import { useAuth } from '../hooks/useAuth';
 
 const TABS = [
   { icon: '🏟️', label: 'Home', path: '/home' },
@@ -10,6 +11,9 @@ const TABS = [
 
 export default function BottomTabBar() {
   const [location, navigate] = useLocation();
+  const { user } = useAuth();
+
+  if (user?.role === 'admin') return null;
 
   return (
     <div style={{
@@ -41,7 +45,7 @@ export default function BottomTabBar() {
             }}
           >
             <span style={{ fontSize: 22 }}>{tab.icon}</span>
-            <span style={{ fontSize: 11, color: active ? colors.primary : colors.textDim, fontWeight: active ? 700 : 400 }}>
+            <span style={{ fontSize: 11, color: active ? colors.primary : colors.textDim, fontWeight: active ? 700 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {tab.label}
             </span>
           </button>

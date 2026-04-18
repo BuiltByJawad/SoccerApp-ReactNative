@@ -4,6 +4,8 @@ import { colors } from '../../theme/colors';
 
 export default function ConfirmationScreen() {
   const [, navigate] = useLocation();
+  const params = new URLSearchParams(window.location.search);
+  const bookingId = params.get('bookingId') || '—';
 
   return (
     <div style={{ backgroundColor: colors.bg, minHeight: 844, display: 'flex', flexDirection: 'column' }}>
@@ -16,30 +18,11 @@ export default function ConfirmationScreen() {
 
         <div style={{ backgroundColor: colors.bgCard, borderRadius: 12, padding: '10px 24px', marginBottom: 24, border: `1px solid ${colors.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 2 }}>Booking ID</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: colors.primary, letterSpacing: 2 }}>#BK001</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: colors.primary, letterSpacing: 1 }}>#{bookingId.slice(0, 8)}</div>
         </div>
 
         <div style={{ backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, border: `1px solid ${colors.border}`, width: '100%', marginBottom: 20 }}>
-          {[['Event', 'Sunday Fun Day — Morning Session'], ['Date', 'Sunday, 05 July 2025'], ['Time', '9:00 AM – 10:30 AM'], ['Venue', 'DBox Sports Complex'], ['Ground', 'Outdoor Turf 5v5'], ['Payment', 'BDT 275 (Split)'], ['Status', '✅ Paid']].map(([l, v]) => (
-            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 13, color: colors.textMuted }}>{l}</span>
-              <span style={{ fontSize: 13, color: colors.text, fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{v}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, border: `1px solid ${colors.border}`, width: '100%', marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 16 }}>Split Payment Status</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-            {['You', 'P2', 'P3', 'P4', 'P5'].map((p, i) => (
-              <div key={p} style={{ textAlign: 'center' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: i === 0 ? `${colors.primary}33` : colors.inputBg, border: `2px solid ${i === 0 ? colors.primary : colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px', fontSize: 14, fontWeight: 700, color: i === 0 ? colors.primary : colors.text }}>{p[0]}</div>
-                <div style={{ fontSize: 10, color: colors.textMuted }}>{p}</div>
-                <div style={{ fontSize: 10, color: i === 0 ? colors.primary : colors.textDim, fontWeight: i === 0 ? 700 : 400 }}>{i === 0 ? 'Paid' : 'Pending'}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 11, color: colors.textDim, textAlign: 'center' }}>Teammates have until 12 hours before the session to pay.</div>
+          <div style={{ fontSize: 14, color: colors.textMuted, textAlign: 'center' }}>Your booking is pending confirmation. Check My Bookings for updates.</div>
         </div>
 
         <div style={{ backgroundColor: colors.bgCard, borderRadius: 16, padding: 16, border: `1px solid ${colors.border}`, width: '100%', display: 'flex', alignItems: 'center', gap: 16 }}>

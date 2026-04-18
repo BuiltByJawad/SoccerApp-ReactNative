@@ -1,12 +1,24 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { colors } from '../../theme/colors';
+import { api } from '../../lib/api';
 
 export default function SplashScreen() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    const t = setTimeout(() => navigate('/login'), 2500);
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.auth.me();
+        if (res.user) {
+          navigate(res.user.role === 'admin' ? '/admin' : '/home');
+        } else {
+          navigate('/login');
+        }
+      } catch {
+        navigate('/login');
+      }
+    }, 2500);
     return () => clearTimeout(t);
   }, []);
 

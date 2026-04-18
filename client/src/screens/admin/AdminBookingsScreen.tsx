@@ -1,14 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { colors } from '../../theme/colors';
-
-const BOOKINGS = [
-  { id: 'BK001', player: 'John Doe', venue: 'DBox Sports Complex', type: '5v5', date: 'Sun, 05 Jul', time: '9:00 AM', amount: 275, status: 'confirmed', split: true, teammates: 3 },
-  { id: 'BK002', player: 'Rahim Ahmed', venue: 'Premier Arena', type: '7v7', date: 'Sun, 05 Jul', time: '6:00 PM', amount: 350, status: 'pending', split: false, teammates: 0 },
-  { id: 'BK003', player: 'Sarah Khan', venue: 'Green Field Club', type: '11v11', date: 'Sat, 28 Jun', time: '7:00 AM', amount: 500, status: 'confirmed', split: true, teammates: 4 },
-  { id: 'BK004', player: 'Ali Hassan', venue: 'City Sports Hub', type: '5v5', date: 'Fri, 27 Jun', time: '8:00 PM', amount: 200, status: 'cancelled', split: false, teammates: 0 },
-  { id: 'BK005', player: 'Maria Begum', venue: 'DBox Sports Complex', type: '5v5', date: 'Thu, 26 Jun', time: '10:00 AM', amount: 275, status: 'confirmed', split: true, teammates: 2 },
-];
+import { api, type Booking } from '../../lib/api';
 
 const STATUS_COLORS: Record<string, string> = { confirmed: colors.primary, pending: colors.warning, cancelled: colors.error };
 const FILTERS = ['All', 'Confirmed', 'Pending', 'Cancelled'];
@@ -17,15 +10,30 @@ export default function AdminBookingsScreen() {
   const [, navigate] = useLocation();
   const [activeFilter, setActiveFilter] = useState('All');
   const [search, setSearch] = useState('');
-  const [bookings, setBookings] = useState(BOOKINGS);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.admin.bookings.list()
+      .then(res => setBookings(res.bookings))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = bookings.filter(b => {
     const matchFilter = activeFilter === 'All' || b.status === activeFilter.toLowerCase();
-    const matchSearch = b.player.toLowerCase().includes(search.toLowerCase()) || b.venue.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = b.id.toLowerCase().includes(search.toLowerCase()) || b.type.toLowerCase().includes(search.toLowerCase()) || b.venueId.toLowerCase().includes(search.toLowerCase());
     return matchFilter && matchSearch;
   });
 
-  const updateStatus = (id: string, status: string) => setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+  const updateStatus = async (id: string, status: "pending" | "confirmed" | "cancelled") => {
+    try {
+      const res = await api.admin.bookings.updateStatus(id, status);
+      setBookings(prev => prev.map(b => b.id === id ? res.booking : b));
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const totalRevenue = filtered.reduce((s, b) => s + (b.status !== 'cancelled' ? b.amount : 0), 0);
 
   return (
@@ -53,13 +61,13 @@ export default function AdminBookingsScreen() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, paddingBottom: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {filtered.map(booking => (
+          {loading ? <div style={{ textAlign: 'center', color: colors.textMuted, padding: 20 }}>Loading...</div> : filtered.length === 0 ? <div style={{ textAlign: 'center', color: colors.textMuted, padding: 20 }}>No bookings found</div> : filtered.map(booking => (
             <div key={booking.id} style={{ backgroundColor: colors.bgCard, borderRadius: 16, padding: 16, border: `1px solid ${colors.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${colors.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: colors.primary, fontSize: 14 }}>{booking.player.split(' ').map(n => n[0]).join('')}</div>
+                  <div style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${colors.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: colors.primary, fontSize: 14 }}>{booking.userId.slice(0, 2).toUpperCase()}</div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>{booking.player}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>User {booking.userId.slice(0, 8)}</div>
                     <div style={{ fontSize: 11, color: colors.textDim }}>#{booking.id}</div>
                   </div>
                 </div>
@@ -71,7 +79,7 @@ export default function AdminBookingsScreen() {
               <div style={{ height: 1, backgroundColor: colors.border, marginBottom: 12 }} />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                {[{ icon: '🏟️', value: booking.venue }, { icon: '📅', value: `${booking.date} · ${booking.time}` }, { icon: '⚽', value: `${booking.type} format` }, { icon: booking.split ? '🤝' : '💳', value: booking.split ? `Split (${booking.teammates + 1} players)` : 'Full payment' }].map((d, i) => (
+                {[{ icon: '🏟️', value: `Venue ${booking.venueId.slice(0, 8)}` }, { icon: '📅', value: `${booking.dateLabel} · ${booking.timeLabel}` }, { icon: '⚽', value: `${booking.type} format` }, { icon: booking.split ? '🤝' : '💳', value: booking.split ? `Split (${booking.teammates + 1} players)` : 'Full payment' }].map((d, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 13, width: 20 }}>{d.icon}</span>
                     <span style={{ fontSize: 12, color: colors.textMuted }}>{d.value}</span>

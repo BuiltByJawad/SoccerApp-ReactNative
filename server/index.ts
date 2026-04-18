@@ -1,7 +1,10 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { ensureDbExtensions } from "./db";
+import { setupSocketIO } from "./socket";
 
 const app = express();
 const httpServer = createServer(app)
@@ -60,7 +63,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await ensureDbExtensions();
   await registerRoutes(httpServer, app);
+  setupSocketIO(httpServer);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -93,8 +98,7 @@ app.use((req, res, next) => {
   httpServer.listen(
     {
       port,
-      host: "0.0.0.0",
-      reusePort: true,
+      host: process.env.HOST || "0.0.0.0",
     },
     () => {
       log(`serving on port ${port}`);

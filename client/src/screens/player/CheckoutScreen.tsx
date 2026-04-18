@@ -1,15 +1,47 @@
 import React, { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 import { colors } from '../../theme/colors';
+import { api } from '../../lib/api';
 
 const METHODS = [{ id: 'bkash', label: 'bKash', icon: '💳' }, { id: 'nagad', label: 'Nagad', icon: '📱' }, { id: 'card', label: 'Card', icon: '🏦' }, { id: 'cash', label: 'Cash', icon: '💵' }];
 
 export default function CheckoutScreen() {
   const [, navigate] = useLocation();
-  const [payMode, setPayMode] = useState<'full' | 'split'>('split');
+  const params = new URLSearchParams(window.location.search);
+  const venueId = params.get('venueId') || '';
+  const venueName = params.get('venueName') || 'Venue';
+  const time = params.get('time') || '';
+  const format = params.get('format') || '5v5';
+  const dateLabelParam = params.get('dateLabel') || '';
+  const [payMode, setPayMode] = useState<'full' | 'split'>(params.get('split') === 'true' ? 'split' : 'full');
   const [method, setMethod] = useState('bkash');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const total = payMode === 'split' ? 275 : 525;
+  const baseAmount = 250;
+  const serviceFee = 25;
+  const total = payMode === 'split' ? baseAmount + serviceFee : baseAmount * 2 + serviceFee;
+
+  const handlePay = async () => {
+    setError('');
+    setSubmitting(true);
+    try {
+      const res = await api.payments.initiate({
+        venueId,
+        type: format,
+        dateLabel: dateLabelParam || new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' }),
+        timeLabel: time,
+        amount: total,
+        split: payMode === 'split',
+        teammates: payMode === 'split' ? 3 : 0,
+      });
+      window.location.href = res.gatewayUrl;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Payment failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div style={{ backgroundColor: colors.bg, minHeight: 844, display: 'flex', flexDirection: 'column' }}>
@@ -20,12 +52,12 @@ export default function CheckoutScreen() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, paddingBottom: 100 }}>
+        {error && <div style={{ backgroundColor: `${colors.error}22`, border: `1px solid ${colors.error}44`, borderRadius: 12, padding: 12, marginBottom: 16, color: colors.error, fontSize: 13 }}>{error}</div>}
         <div style={{ backgroundColor: colors.bgCard, borderRadius: 16, padding: 16, display: 'flex', gap: 16, border: `1px solid ${colors.border}`, marginBottom: 24 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Sunday Fun Day, 05 July</div>
-            <div style={{ fontSize: 12, color: colors.primary, marginBottom: 6 }}>Morning Session</div>
-            <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 2 }}>Outdoor Turf Ground 5v5</div>
-            <div style={{ fontSize: 12, color: colors.textMuted }}>DBox Sports Complex</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: colors.text, marginBottom: 4 }}>{venueName}</div>
+            <div style={{ fontSize: 12, color: colors.primary, marginBottom: 6 }}>{time}</div>
+            <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 2 }}>{format} format</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingLeft: 16, borderLeft: `1px solid ${colors.border}` }}>
             <span style={{ fontSize: 32, marginBottom: 4 }}>⚽</span>
@@ -35,7 +67,7 @@ export default function CheckoutScreen() {
 
         <div style={{ fontSize: 15, fontWeight: 700, color: colors.text, marginBottom: 12 }}>Payment Mode</div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-          {[{ id: 'full', icon: '💰', label: 'Full Payment', amount: 'BDT 500', desc: 'Pay for full session', color: colors.primary }, { id: 'split', icon: '🤝', label: 'Split Payment', amount: 'BDT 250', desc: 'Pay your share only', color: colors.purple }].map(m => (
+          {[{ id: 'full', icon: '💰', label: 'Full Payment', amount: `BDT ${baseAmount * 2}`, desc: 'Pay for full session', color: colors.primary }, { id: 'split', icon: '🤝', label: 'Split Payment', amount: `BDT ${baseAmount}`, desc: 'Pay your share only', color: colors.purple }].map(m => (
             <div key={m.id} onClick={() => setPayMode(m.id as any)} style={{ flex: 1, borderRadius: 16, padding: 16, textAlign: 'center', border: `1px solid ${payMode === m.id ? colors.primary : colors.border}`, backgroundColor: payMode === m.id ? `${colors.primary}11` : colors.bgCard, cursor: 'pointer' }}>
               <div style={{ fontSize: 24, marginBottom: 4 }}>{m.icon}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: colors.text, marginBottom: 2 }}>{m.label}</div>
@@ -80,7 +112,7 @@ export default function CheckoutScreen() {
 
         <div style={{ backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, border: `1px solid ${colors.border}` }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: colors.text, marginBottom: 16 }}>Order Summary</div>
-          {[['Session Fee', 'BDT 500'], ['Your Share', `BDT ${payMode === 'split' ? 250 : 500}`], ['Service Fee', 'BDT 25']].map(([l, v]) => (
+          {[['Session Fee', `BDT ${baseAmount * 2}`], ['Your Share', `BDT ${payMode === 'split' ? baseAmount : baseAmount * 2}`], ['Service Fee', `BDT ${serviceFee}`]].map(([l, v]) => (
             <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
               <span style={{ fontSize: 13, color: colors.textMuted }}>{l}</span>
               <span style={{ fontSize: 13, color: colors.text, fontWeight: 600 }}>{v}</span>
@@ -95,8 +127,8 @@ export default function CheckoutScreen() {
       </div>
 
       <div style={{ padding: 24, backgroundColor: colors.bgCard, borderTop: `1px solid ${colors.border}` }}>
-        <button onClick={() => navigate('/confirmation')} style={{ width: '100%', padding: '16px 0', backgroundColor: colors.purple, border: 'none', borderRadius: 999, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-          Proceed to Pay — BDT {total}
+        <button onClick={handlePay} disabled={submitting} style={{ width: '100%', padding: '16px 0', backgroundColor: colors.purple, border: 'none', borderRadius: 999, color: '#fff', fontWeight: 700, fontSize: 15, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}>
+          {submitting ? 'Processing...' : `Proceed to Pay — BDT ${total}`}
         </button>
       </div>
     </div>

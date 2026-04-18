@@ -18,9 +18,18 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #0d1117;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 input, button, select, textarea {
@@ -222,8 +231,54 @@ input, button, select, textarea {
 
   body {
     @apply bg-background text-foreground;
+    background-color: var(--pf-bg);
+    color: var(--pf-text);
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
   }
+}
+
+:root {
+  --pf-bg: #0A0E17;
+  --pf-bg-card: #131C2E;
+  --pf-bg-card-alt: #0F1923;
+  --pf-primary: #4CAF50;
+  --pf-primary-dark: #388E3C;
+  --pf-primary-light: #81C784;
+  --pf-accent: #66BB6A;
+  --pf-purple: #6600A5;
+  --pf-purple-light: #F1DBFF;
+  --pf-text: #FFFFFF;
+  --pf-text-muted: #8E9BAD;
+  --pf-text-dim: #5A6A7A;
+  --pf-border: #1E2D40;
+  --pf-border-light: #243447;
+  --pf-error: #EF5350;
+  --pf-success: #4CAF50;
+  --pf-warning: #FFA726;
+  --pf-input-bg: #1A2535;
+  --pf-tab-bar: #0D1420;
+}
+
+.pf-light {
+  --pf-bg: #F7FAFC;
+  --pf-bg-card: #FFFFFF;
+  --pf-bg-card-alt: #EDF2F7;
+  --pf-primary: #2E7D32;
+  --pf-primary-dark: #1B5E20;
+  --pf-primary-light: #66BB6A;
+  --pf-accent: #43A047;
+  --pf-purple: #6A1B9A;
+  --pf-purple-light: #F3E5F5;
+  --pf-text: #111827;
+  --pf-text-muted: #4B5563;
+  --pf-text-dim: #6B7280;
+  --pf-border: #E5E7EB;
+  --pf-border-light: #D1D5DB;
+  --pf-error: #DC2626;
+  --pf-success: #16A34A;
+  --pf-warning: #F59E0B;
+  --pf-input-bg: #F3F4F6;
+  --pf-tab-bar: #FFFFFF;
 }

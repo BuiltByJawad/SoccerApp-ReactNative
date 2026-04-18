@@ -1,23 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { colors } from '../../theme/colors';
 import BottomTabBar from '../../components/BottomTabBar';
+import { api, type Booking } from '../../lib/api';
 
-const BOOKINGS = [
-  { id: 'BK001', venue: 'DBox Sports Complex', type: '5v5 Outdoor', date: 'Sun, 05 July', time: '9:00 AM', status: 'upcoming', amount: 275, split: true },
-  { id: 'BK002', venue: 'Premier Football Arena', type: '7v7 Indoor', date: 'Sat, 28 June', time: '6:00 PM', status: 'completed', amount: 350, split: false },
-  { id: 'BK003', venue: 'Green Field Club', type: '11v11 Grass', date: 'Sun, 22 June', time: '7:00 AM', status: 'completed', amount: 500, split: true },
-  { id: 'BK004', venue: 'City Sports Hub', type: '5v5 Futsal', date: 'Fri, 15 June', time: '8:00 PM', status: 'cancelled', amount: 200, split: false },
-];
-
-const STATUS_COLORS: Record<string, string> = { upcoming: colors.primary, completed: colors.textMuted, cancelled: colors.error };
-const TABS = ['All', 'Upcoming', 'Completed', 'Cancelled'];
+const STATUS_COLORS: Record<string, string> = { pending: colors.warning, confirmed: colors.primary, cancelled: colors.error };
+const TABS = ['All', 'Pending', 'Confirmed', 'Cancelled'];
 
 export default function MyBookingsScreen() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState('All');
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
-  const filtered = BOOKINGS.filter(b => activeTab === 'All' || b.status === activeTab.toLowerCase());
+  useEffect(() => {
+    api.bookings.list()
+      .then(res => setBookings(res.bookings))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = bookings.filter(b => activeTab === 'All' || b.status === activeTab.toLowerCase());
+
+  const handleCancel = async (id: string) => {
+    setCancelling(id);
+    try {
+      const res = await api.bookings.cancel(id);
+      setBookings(prev => prev.map(b => b.id === id ? res.booking : b));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCancelling(null);
+    }
+  };
 
   return (
     <div style={{ backgroundColor: colors.bg, minHeight: 844, display: 'flex', flexDirection: 'column' }}>
@@ -32,7 +48,7 @@ export default function MyBookingsScreen() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, paddingBottom: 90 }}>
-        {filtered.length === 0 ? (
+        {loading ? <div style={{ textAlign: 'center', color: colors.textMuted, padding: 40 }}>Loading...</div> : filtered.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 80, textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: colors.text, marginBottom: 8 }}>No bookings found</div>
@@ -45,7 +61,7 @@ export default function MyBookingsScreen() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: colors.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🏟️</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>{booking.venue}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>{booking.type} · Venue</div>
                     <div style={{ fontSize: 12, color: colors.textMuted }}>{booking.type}</div>
                   </div>
                   <div style={{ backgroundColor: `${STATUS_COLORS[booking.status]}22`, border: `1px solid ${STATUS_COLORS[booking.status]}44`, borderRadius: 999, padding: '3px 10px' }}>
@@ -56,7 +72,7 @@ export default function MyBookingsScreen() {
                 <div style={{ height: 1, backgroundColor: colors.border, marginBottom: 12 }} />
 
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
-                  {[{ icon: '📅', text: booking.date }, { icon: '🕐', text: booking.time }, { icon: '🤝', text: booking.split ? 'Split Pay' : 'Full Pay' }].map(d => (
+                  {[{ icon: '📅', text: booking.dateLabel }, { icon: '🕐', text: booking.timeLabel }, { icon: '🤝', text: booking.split ? 'Split Pay' : 'Full Pay' }].map(d => (
                     <div key={d.icon} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ fontSize: 12 }}>{d.icon}</span>
                       <span style={{ fontSize: 12, color: colors.textMuted }}>{d.text}</span>
@@ -69,10 +85,10 @@ export default function MyBookingsScreen() {
                   <span style={{ fontSize: 16, fontWeight: 800, color: colors.primary }}>BDT {booking.amount}</span>
                 </div>
 
-                {booking.status === 'upcoming' && (
+                {booking.status === 'pending' && (
                   <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                     <button style={{ flex: 1, padding: '10px 0', backgroundColor: colors.primary, border: 'none', borderRadius: 999, color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>View Details</button>
-                    <button style={{ flex: 1, padding: '10px 0', backgroundColor: 'transparent', border: `1px solid ${colors.error}`, borderRadius: 999, color: colors.error, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => handleCancel(booking.id)} disabled={cancelling === booking.id} style={{ flex: 1, padding: '10px 0', backgroundColor: 'transparent', border: `1px solid ${colors.error}`, borderRadius: 999, color: colors.error, fontWeight: 600, fontSize: 13, cursor: cancelling === booking.id ? 'not-allowed' : 'pointer', opacity: cancelling === booking.id ? 0.7 : 1 }}>{cancelling === booking.id ? 'Cancelling...' : 'Cancel'}</button>
                   </div>
                 )}
               </div>

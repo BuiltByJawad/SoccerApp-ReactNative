@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { colors } from '../../theme/colors';
 import BottomTabBar from '../../components/BottomTabBar';
-
-const VENUES = [
-  { id: '1', name: 'DBox Sports Complex', type: '5v5 Outdoor Turf', location: 'Gulshan, Dhaka', price: 250, rating: 4.8, available: 3, tags: ['5v5', 'Outdoor'] },
-  { id: '2', name: 'Premier Football Arena', type: '7v7 Indoor', location: 'Dhanmondi, Dhaka', price: 350, rating: 4.6, available: 1, tags: ['7v7', 'Indoor'] },
-  { id: '3', name: 'Green Field Club', type: '11v11 Grass', location: 'Mirpur, Dhaka', price: 500, rating: 4.9, available: 5, tags: ['11v11', 'Grass'] },
-  { id: '4', name: 'City Sports Hub', type: '5v5 Futsal', location: 'Uttara, Dhaka', price: 200, rating: 4.5, available: 2, tags: ['5v5', 'Futsal'] },
-];
+import { api, type Booking, type Venue } from '../../lib/api';
+import { useSocket } from '../../hooks/useSocket';
+import { useAuth } from '../../hooks/useAuth';
 
 const FILTERS = ['All', '5v5', '7v7', '11v11', 'Indoor', 'Outdoor'];
 
@@ -16,10 +12,40 @@ export default function HomeScreen() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showNotif, setShowNotif] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const { user } = useAuth();
+  const { onBookingCreated, onBookingCancelled, onBookingStatus } = useSocket(user?.id);
 
-  const filtered = VENUES.filter(v => {
+  useEffect(() => {
+    api.venues.list()
+      .then(res => setVenues(res.venues.filter(v => v.active)))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+    api.bookings.list()
+      .then(res => setBookings(res.bookings))
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const unsub1 = onBookingCreated((data) => {
+      setBookings(prev => [data.booking, ...prev]);
+      setShowNotif(true);
+    });
+    const unsub2 = onBookingCancelled((data) => {
+      setBookings(prev => prev.map(b => b.id === data.booking.id ? data.booking : b));
+    });
+    const unsub3 = onBookingStatus((data) => {
+      setBookings(prev => prev.map(b => b.id === data.booking.id ? data.booking : b));
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, [onBookingCreated, onBookingCancelled, onBookingStatus]);
+
+  const filtered = venues.filter(v => {
     const matchSearch = v.name.toLowerCase().includes(search.toLowerCase()) || v.location.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = activeFilter === 'All' || v.tags.includes(activeFilter);
+    const matchFilter = activeFilter === 'All' || v.type.includes(activeFilter);
     return matchSearch && matchFilter;
   });
 
@@ -29,10 +55,32 @@ export default function HomeScreen() {
         <div style={{ backgroundColor: colors.bgCard, padding: '60px 24px 24px', borderRadius: '0 0 24px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 14, color: colors.textMuted }}>Good Morning 👋</div>
+              <div style={{ fontSize: 14, color: colors.textMuted }}>{(() => { const h = new Date().getHours(); if (h < 12) return 'Good Morning ☀️'; if (h < 17) return 'Good Afternoon 🌤️'; return 'Good Evening 🌅'; })()} 👋</div>
               <div style={{ fontSize: 24, fontWeight: 800, color: colors.text, marginTop: 2 }}>Ready to play?</div>
             </div>
-            <div style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔔</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ position: 'relative' }}>
+                <button onClick={() => setShowNotif(!showNotif)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.inputBg, border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer' }}>🔔</button>
+                {bookings.filter(b => b.status === 'pending').length > 0 && <div style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.error, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{bookings.filter(b => b.status === 'pending').length}</div>}
+                {showNotif && (
+                  <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 48, right: -8, width: 280, backgroundColor: colors.bgCard, borderRadius: 16, border: `1px solid ${colors.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', zIndex: 200, overflow: 'hidden' }}>
+                    <div style={{ padding: '12px 16px', borderBottom: `1px solid ${colors.border}`, fontSize: 14, fontWeight: 700, color: colors.text }}>Notifications</div>
+                    {bookings.length === 0 ? <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: colors.textMuted }}>No notifications yet</div> : bookings.slice(0, 5).map(b => (
+                      <div key={b.id} style={{ padding: '10px 16px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: b.status === 'confirmed' ? `${colors.success}22` : b.status === 'pending' ? `${colors.warning}22` : `${colors.error}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{b.status === 'confirmed' ? '✅' : b.status === 'pending' ? '⏳' : '❌'}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: colors.text }}>{b.type} Booking {b.status}</div>
+                          <div style={{ fontSize: 11, color: colors.textMuted }}>{b.dateLabel} · {b.timeLabel}</div>
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: colors.primary }}>BDT {b.amount}</span>
+                      </div>
+                    ))}
+                    {bookings.length > 5 && <div onClick={() => { navigate('/bookings'); setShowNotif(false); }} style={{ padding: 12, textAlign: 'center', fontSize: 12, color: colors.primary, fontWeight: 600, cursor: 'pointer' }}>View All</div>}
+                  </div>
+                )}
+              </div>
+              <button onClick={async () => { try { await api.auth.logout(); } catch {} navigate('/login'); }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.inputBg, border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, cursor: 'pointer', color: colors.textMuted }}>⏻</button>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', backgroundColor: colors.inputBg, borderRadius: 999, padding: '0 16px', border: `1px solid ${colors.border}` }}>
             <span style={{ marginRight: 8 }}>🔍</span>
@@ -79,27 +127,18 @@ export default function HomeScreen() {
         <div style={{ padding: '0 24px' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: colors.text, marginBottom: 12 }}>Venues Near You</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {filtered.map(venue => (
+            {loading ? <div style={{ textAlign: 'center', color: colors.textMuted, padding: 20 }}>Loading venues...</div> : filtered.map(venue => (
               <div key={venue.id} onClick={() => navigate(`/venue/${venue.id}`)} style={{ backgroundColor: colors.bgCard, borderRadius: 16, overflow: 'hidden', border: `1px solid ${colors.border}`, cursor: 'pointer' }}>
-                <div style={{ height: 100, backgroundColor: colors.bgCardAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                  <span style={{ fontSize: 40 }}>🏟️</span>
+                <div style={{ height: 100, backgroundColor: colors.bgCardAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                  {venue.imageUrl ? <img src={venue.imageUrl} alt={venue.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: '#fff' }}>{venue.name[0]}</div>}
                   <div style={{ position: 'absolute', top: 10, right: 10, backgroundColor: colors.primary, borderRadius: 999, padding: '3px 10px' }}>
-                    <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{venue.available} slots</span>
+                    <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{venue.slots} slots</span>
                   </div>
                 </div>
                 <div style={{ padding: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: colors.text }}>{venue.name}</span>
-                    <span style={{ fontSize: 13, color: colors.text }}>⭐ {venue.rating}</span>
-                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 4 }}>{venue.name}</div>
                   <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8 }}>{venue.type}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: colors.textDim }}>📍 {venue.location}</span>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: colors.primary }}>BDT {venue.price}<span style={{ fontSize: 11, color: colors.textMuted, fontWeight: 400 }}>/person</span></span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {venue.tags.map(t => <span key={t} style={{ backgroundColor: colors.border, borderRadius: 6, padding: '2px 8px', fontSize: 11, color: colors.textMuted }}>{t}</span>)}
-                  </div>
+                  <div style={{ fontSize: 12, color: colors.textDim }}>📍 {venue.location}</div>
                 </div>
               </div>
             ))}
